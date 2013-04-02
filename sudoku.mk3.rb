@@ -17,10 +17,16 @@ class Sudoku
       end
     end
     show_result
+  end
+
+  def solve
     puts
     puts "Just a moment..."
     puts
+    try
   end
+
+  private
 
   def get_row( y )
     row = (0..8).to_a.product([y]).collect{|key| @board[key]}
@@ -73,4 +79,4 @@ class Sudoku
 end
 
 s = Sudoku.new ARGV[0]
-s.try
+s.solve
