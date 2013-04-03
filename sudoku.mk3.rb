@@ -5,6 +5,7 @@ class Sudoku
     @board = Hash.new
     @known_keys = []
     @sub_range = [[0,1,2], [3,4,5], [6,7,8]]
+    @all = (1..9).to_a.reverse
     File.open(puzzle) do |f|
       row = 0
       while line = f.gets
@@ -17,6 +18,10 @@ class Sudoku
       end
     end
     show_result
+    trap("USR1") do
+      puts
+      show_result
+    end
   end
 
   def solve
@@ -53,7 +58,7 @@ class Sudoku
     key = [x, y]
     return try( step + 1 ) if @known_keys.include? key
 
-    guesses = (1..9).to_a - get_row(y) - get_column(x)- get_nine(x, y)
+    guesses = @all - get_row(y) - get_column(x)- get_nine(x, y)
 
     guesses.each do |g|
       @board[key] = g
