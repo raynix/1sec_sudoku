@@ -5,7 +5,8 @@ class Sudoku
     @board = Hash.new
     @known_keys = []
     @sub_range = [[0,1,2], [3,4,5], [6,7,8]]
-    @all = (1..9).to_a.reverse
+    @all = (1..9).to_a
+    @all_index = (0..8).to_a
     File.open(puzzle) do |f|
       row = 0
       while line = f.gets
@@ -34,11 +35,11 @@ class Sudoku
   private
 
   def get_row( y )
-    row = (0..8).to_a.product([y]).collect{|key| @board[key]}
+    row = @all_index.product([y]).collect{|key| @board[key]}
   end
 
   def get_column( x )
-    col = [x].product((0..8).to_a).collect{|key| @board[key]}
+    col = [x].product(@all_index).collect{|key| @board[key]}
   end
 
   def get_nine( x, y )
