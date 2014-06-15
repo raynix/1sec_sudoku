@@ -36,16 +36,22 @@ class Sudoku
 
   def get_row( y )
     row = @all_index.product([y]).collect{|key| @board[key]}
+    row.delete 0
+    row
   end
 
   def get_column( x )
     col = [x].product(@all_index).collect{|key| @board[key]}
+    col.delete 0
+    col
   end
 
   def get_nine( x, y )
     x_r = @sub_range[ x / 3 ]
     y_r = @sub_range[ y / 3 ]
     nine = x_r.product(y_r).collect{|key| @board[key] }
+    nine.delete 0
+    nine
   end
 
   def try(step=0) 
