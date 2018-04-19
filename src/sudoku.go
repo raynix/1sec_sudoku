@@ -82,24 +82,6 @@ func int_in_list(p int, list []int) bool {
 	return false
 }
 
-func filter(c []int, f func(int) bool) []int {
-	r := make([]int, 0)
-	for _, v := range c {
-		if f(v) {
-			r = append(r, v)
-		}
-	}
-	return r
-}
-
-func gt_zero(a int) bool {
-	if a > 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
 func (self *Sudoku) get_row(n int) []int {
 	r := make([]int, 0)
 	for x := 0; x < 9; x++ {
