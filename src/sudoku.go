@@ -14,8 +14,10 @@ type Pos struct {
 }
 
 type Sudoku struct {
-	board map[Pos]int
-	given []Pos
+	board  map[Pos]int
+	banned map[Pos]int
+	ranks  []Pos
+	given  []Pos
 }
 
 func (self *Sudoku) print_board() {
@@ -64,6 +66,7 @@ func (self *Sudoku) read_puzzle(puzzle string) {
 		log.Fatal(err)
 	}
 }
+
 func in_list(p Pos, list []Pos) bool {
 	for _, b := range list {
 		if p == b {
@@ -122,15 +125,47 @@ func (self *Sudoku) get_nine(n Pos) []int {
 	return r
 }
 
+func unique_int(list []int) []int {
+	r := make([]int, 0)
+	for _, i := range list {
+		if int_in_list(i, r) {
+			continue
+		}
+		r = append(r, i)
+	}
+	return r
+}
+
+func (self *Sudoku) assess_order() {
+	self.ranks = make([]Pos, 0)
+	self.banned = make(map[Pos]int)
+	for y := 0; y < 9; y++ {
+		for x := 0; x < 9; x++ {
+			p := Pos{x, y}
+			if in_list(p, self.given) {
+				continue
+			}
+			c := make([]int, 0)
+			c = append(self.get_row(y), self.get_column(x)...)
+			c = append(c, self.get_nine(p)...)
+			self.banned[p] = len(unique_int(c))
+		}
+	}
+	for o := 8; o >= 0; o-- {
+		for k, v := range self.banned {
+			if o == v {
+				self.ranks = append(self.ranks, k)
+			}
+		}
+	}
+}
+
 func (self *Sudoku) try_step(step int) bool {
-	if step == 81 {
+	if step == len(self.ranks) {
 		self.print_board()
 		return true
 	}
-	p := Pos{step % 9, step / 9}
-	if in_list(p, self.given) {
-		return self.try_step(step + 1)
-	}
+	p := self.ranks[step]
 
 	used_numbers := append(self.get_row(p.Y), self.get_column(p.X)...)
 	used_numbers = append(used_numbers, self.get_nine(p)...)
@@ -155,5 +190,6 @@ func main() {
 	bd := Sudoku{}
 	bd.read_puzzle(puzzle)
 	bd.print_board()
+	bd.assess_order()
 	bd.try_step(0)
 }
