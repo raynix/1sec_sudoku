@@ -1,5 +1,5 @@
 import sys
-  
+
 def non_zero(x):
   return x > 0 and x
 
@@ -23,13 +23,13 @@ class Sudoku:
   def show_results(self):
     for row in range(0, 9):
       for col in range(0, 9):
-        print( self.board[ (col, row) ] > 0 and self.board[ (col, row) ] or '.' ), 
-      print
+        print( self.board[ (col, row) ] > 0 and self.board[ (col, row) ] or '.', end=' ' )
+      print()
 
   def solve(self):
-    print
+    print()
     print("Just a moment...")
-    print
+    print()
     self.try_next()
 
 
@@ -43,21 +43,21 @@ class Sudoku:
     return filter( non_zero, col)
 
   def get_nine(self, c, r):
-    nine = [ self.board[ (x, y) ] for x in self.sub_range[ c / 3]  for y in self.sub_range[ r / 3] ]
+    nine = [ self.board[ (x, y) ] for x in self.sub_range[ int(c / 3) ]  for y in self.sub_range[ int(r / 3) ] ]
     return filter( non_zero, nine)
 
   def try_next(self, step=0):
     if step == 81:
       self.show_results()
       return True
-    x = step / 9
+    x = int(step / 9)
     y = step % 9
     key = (x, y)
-    
+
     if key in self.known_keys:
       return self.try_next( step + 1)
 
-    guesses = set(self.all) - set( self.get_row(y) ) - set( self.get_col(x) ) - set( self.get_nine(x,y) ) 
+    guesses = set(self.all) - set( self.get_row(y) ) - set( self.get_col(x) ) - set( self.get_nine(x,y) )
     for g in guesses:
       self.board[ key ] = g
       if self.try_next( step + 1):
@@ -69,39 +69,3 @@ class Sudoku:
 if __name__ == "__main__":
   s = Sudoku(sys.argv[1])
   s.solve()
-
-  '''
-  def try(step=0) 
-    if step == 81
-      show_result
-      return true
-    end
-
-    y = step / 9
-    x = step % 9
-    key = [x, y]
-    return try( step + 1 ) if @known_keys.include? key
-
-    guesses = @all - get_row(y) - get_column(x)- get_nine(x, y)
-
-    guesses.each do |g|
-      @board[key] = g
-      return true if try(step + 1)
-    end      
-    @board[key] = 0
-    return false    
-  end
-  
-  def show_result()
-    for y in (0..8)
-      for x in (0..8)
-        if @known_keys.include? [x,y]
-          print @board[[x,y]].to_s.red
-        else
-          print @board[[x,y]] > 0 ? @board[[x,y]] : '.'
-        end
-        print ' '
-      end
-      print "\n"
-    end
-  '''
