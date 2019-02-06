@@ -15,9 +15,13 @@ type Pos struct {
 
 type Sudoku struct {
 	board  map[Pos]int
-	banned map[Pos]int
 	ranks  []Pos
 	given  []Pos
+}
+
+type Delta struct {
+	pos Pos
+	v int
 }
 
 func (self *Sudoku) print_board() {
@@ -85,7 +89,7 @@ func int_in_list(p int, list []int) bool {
 	return false
 }
 
-func (self *Sudoku) get_row(n int) []int {
+func (self *Sudoku) get_row(n int, ds []Delta) []int {
 	r := make([]int, 0)
 	for x := 0; x < 9; x++ {
 		v := self.board[Pos{x, n}]
@@ -93,10 +97,15 @@ func (self *Sudoku) get_row(n int) []int {
 			r = append(r, v)
 		}
 	}
+	for _, d := range ds {
+		if d.pos.Y == n {
+			r = append(r, d.v)
+		}
+	}
 	return r
 }
 
-func (self *Sudoku) get_column(n int) []int {
+func (self *Sudoku) get_column(n int, ds []Delta) []int {
 	r := make([]int, 0)
 	for y := 0; y < 9; y++ {
 		v := self.board[Pos{n, y}]
@@ -104,10 +113,15 @@ func (self *Sudoku) get_column(n int) []int {
 			r = append(r, v)
 		}
 	}
+	for _, d := range ds {
+		if d.pos.X == n {
+			r = append(r, d.v)
+		}
+	}
 	return r
 }
 
-func (self *Sudoku) get_nine(n Pos) []int {
+func (self *Sudoku) get_nine(n Pos, ds []Delta) []int {
 	nine_grids := [][]int{
 		{0, 1, 2}, {0, 1, 2}, {0, 1, 2},
 		{3, 4, 5}, {3, 4, 5}, {3, 4, 5},
@@ -119,6 +133,11 @@ func (self *Sudoku) get_nine(n Pos) []int {
 			v := self.board[Pos{x, y}]
 			if v > 0 {
 				r = append(r, v)
+			}
+			for _, d := range ds {
+				if d.pos.X == x && d.pos.Y == y {
+					r = append(r, d.v)
+				}
 			}
 		}
 	}
@@ -138,7 +157,8 @@ func unique_int(list []int) []int {
 
 func (self *Sudoku) assess_order() {
 	self.ranks = make([]Pos, 0)
-	self.banned = make(map[Pos]int)
+	banned := make(map[Pos]int)
+	ds := make([]Delta, 0)
 	for y := 0; y < 9; y++ {
 		for x := 0; x < 9; x++ {
 			p := Pos{x, y}
@@ -146,13 +166,13 @@ func (self *Sudoku) assess_order() {
 				continue
 			}
 			c := make([]int, 0)
-			c = append(self.get_row(y), self.get_column(x)...)
-			c = append(c, self.get_nine(p)...)
-			self.banned[p] = len(unique_int(c))
+			c = append(self.get_row(y, ds), self.get_column(x, ds)...)
+			c = append(c, self.get_nine(p, ds)...)
+			banned[p] = len(unique_int(c))
 		}
 	}
 	for o := 8; o >= 0; o-- {
-		for k, v := range self.banned {
+		for k, v := range banned {
 			if o == v {
 				self.ranks = append(self.ranks, k)
 			}
@@ -160,21 +180,23 @@ func (self *Sudoku) assess_order() {
 	}
 }
 
-func (self *Sudoku) try_step(step int) bool {
+func (self *Sudoku) try_step(ds []Delta) bool {
+	step := len(ds)
 	if step == len(self.ranks) {
 		self.print_board()
 		return true
 	}
 	p := self.ranks[step]
 
-	used_numbers := append(self.get_row(p.Y), self.get_column(p.X)...)
-	used_numbers = append(used_numbers, self.get_nine(p)...)
+	used_numbers := append(self.get_row(p.Y, ds), self.get_column(p.X, ds)...)
+	used_numbers = append(used_numbers, self.get_nine(p, ds)...)
 	for g := 1; g <= 9; g++ {
 		if int_in_list(g, used_numbers) {
 			continue
 		}
+		new_ds := append(ds, Delta{p, g})
 		self.board[p] = g
-		if self.try_step(step + 1) {
+		if self.try_step(new_ds) {
 			return true
 		}
 	}
@@ -191,5 +213,5 @@ func main() {
 	bd.read_puzzle(puzzle)
 	bd.print_board()
 	bd.assess_order()
-	bd.try_step(0)
+	bd.try_step([]Delta{})
 }
