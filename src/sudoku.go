@@ -160,26 +160,52 @@ func (self *Sudoku) assess_order() {
 	}
 }
 
-func (self *Sudoku) try_step(step int) bool {
-	if step == len(self.ranks) {
-		self.print_board()
-		return true
+func copy_board(prev_board Sudoku) (new_board Sudoku) {
+	new_board = Sudoku{}
+	new_board.board = make(map[Pos]int)
+	for k, v := range prev_board.board {
+		new_board.board[k] = v
 	}
-	p := self.ranks[step]
+	copy(new_board.ranks, prev_board.ranks)
+	copy(new_board.given, prev_board.given)
+	return
+}
 
-	used_numbers := append(self.get_row(p.Y), self.get_column(p.X)...)
-	used_numbers = append(used_numbers, self.get_nine(p)...)
+func (board Sudoku) try_step(step int, done chan bool) {
+	if step == len(board.ranks) {
+		board.print_board()
+		done <- true
+		return
+	}
+	p := board.ranks[step]
+
+	used_numbers := append(board.get_row(p.Y), board.get_column(p.X)...)
+	used_numbers = append(used_numbers, board.get_nine(p)...)
+	sub_done := make(chan bool, 9)
 	for g := 1; g <= 9; g++ {
 		if int_in_list(g, used_numbers) {
+			sub_done <- false
 			continue
 		}
-		self.board[p] = g
-		if self.try_step(step + 1) {
-			return true
+		board.board[p] = g
+		sub_board := copy_board(board)
+		sub_board.print_board()
+		go sub_board.try_step(step+1, sub_done)
+	}
+	super_done := false
+	for s := 1; s <= 9; s++ {
+		found := <-sub_done
+		if found {
+			super_done = true
 		}
 	}
-	self.board[p] = 0
-	return false
+	if super_done {
+		done <- true
+	} else {
+		done <- false
+	}
+	board.board[p] = 0
+	return
 }
 
 func main() {
@@ -187,9 +213,11 @@ func main() {
 	if len(os.Args) > 1 {
 		puzzle = os.Args[1]
 	}
+	top_done := make(chan bool, 1)
 	bd := Sudoku{}
 	bd.read_puzzle(puzzle)
 	bd.print_board()
 	bd.assess_order()
-	bd.try_step(0)
+	bd.try_step(0, top_done)
+	<-top_done
 }
