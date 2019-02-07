@@ -14,8 +14,7 @@ type Pos struct {
 }
 
 type Sudoku struct {
-	board  map[Pos]int
-	banned map[Pos]int
+	board  [9][9]int
 	ranks  []Pos
 	given  []Pos
 }
@@ -24,9 +23,9 @@ func (self *Sudoku) print_board() {
 	fmt.Println("")
 	for y := 0; y < 9; y++ {
 		for x := 0; x < 9; x++ {
-			v := self.board[Pos{x, y}]
+			v := self.board[x][y]
 			if v > 0 {
-				fmt.Print(self.board[Pos{x, y}])
+				fmt.Print(self.board[x][y])
 			} else {
 				fmt.Print(".")
 			}
@@ -46,7 +45,7 @@ func (self *Sudoku) read_puzzle(puzzle string) {
 
 	scanner := bufio.NewScanner(file)
 	counter := 0
-	self.board = make(map[Pos]int)
+	self.board = [9][9]int{}
 	self.given = make([]Pos, 0)
 	for scanner.Scan() {
 		row_str := strings.Split(scanner.Text(), " ")
@@ -54,7 +53,7 @@ func (self *Sudoku) read_puzzle(puzzle string) {
 		for i := 0; i < len(row_str); i++ {
 			v, _ = strconv.Atoi(row_str[i])
 			p := Pos{i, counter}
-			self.board[p] = v
+			self.board[i][counter] = v
 			if v > 0 {
 				self.given = append(self.given, p)
 			}
@@ -88,7 +87,7 @@ func int_in_list(p int, list []int) bool {
 func (self *Sudoku) get_row(n int) []int {
 	r := make([]int, 0)
 	for x := 0; x < 9; x++ {
-		v := self.board[Pos{x, n}]
+		v := self.board[x][n]
 		if v > 0 {
 			r = append(r, v)
 		}
@@ -99,7 +98,7 @@ func (self *Sudoku) get_row(n int) []int {
 func (self *Sudoku) get_column(n int) []int {
 	r := make([]int, 0)
 	for y := 0; y < 9; y++ {
-		v := self.board[Pos{n, y}]
+		v := self.board[n][y]
 		if v > 0 {
 			r = append(r, v)
 		}
@@ -116,7 +115,7 @@ func (self *Sudoku) get_nine(n Pos) []int {
 	r := make([]int, 0)
 	for _, y := range nine_grids[n.Y] {
 		for _, x := range nine_grids[n.X] {
-			v := self.board[Pos{x, y}]
+			v := self.board[x][y]
 			if v > 0 {
 				r = append(r, v)
 			}
@@ -138,7 +137,7 @@ func unique_int(list []int) []int {
 
 func (self *Sudoku) assess_order() {
 	self.ranks = make([]Pos, 0)
-	self.banned = make(map[Pos]int)
+	banned := make(map[Pos]int)
 	for y := 0; y < 9; y++ {
 		for x := 0; x < 9; x++ {
 			p := Pos{x, y}
@@ -148,11 +147,11 @@ func (self *Sudoku) assess_order() {
 			c := make([]int, 0)
 			c = append(self.get_row(y), self.get_column(x)...)
 			c = append(c, self.get_nine(p)...)
-			self.banned[p] = len(unique_int(c))
+			banned[p] = len(unique_int(c))
 		}
 	}
 	for o := 8; o >= 0; o-- {
-		for k, v := range self.banned {
+		for k, v := range banned {
 			if o == v {
 				self.ranks = append(self.ranks, k)
 			}
@@ -173,12 +172,12 @@ func (self *Sudoku) try_step(step int) bool {
 		if int_in_list(g, used_numbers) {
 			continue
 		}
-		self.board[p] = g
+		self.board[p.X][p.Y] = g
 		if self.try_step(step + 1) {
 			return true
 		}
 	}
-	self.board[p] = 0
+	self.board[p.X][p.Y] = 0
 	return false
 }
 
