@@ -24,7 +24,7 @@ type Delta struct {
 	v int
 }
 
-func (self *Sudoku) print_board() {
+func (self *Sudoku) print_board(ds []Delta) {
 	fmt.Println("")
 	for y := 0; y < 9; y++ {
 		for x := 0; x < 9; x++ {
@@ -32,7 +32,16 @@ func (self *Sudoku) print_board() {
 			if v > 0 {
 				fmt.Print(self.board[Pos{x, y}])
 			} else {
-				fmt.Print(".")
+				in_delta := false
+				for _, d := range ds{
+					if d.pos.X == x && d.pos.Y == y {
+						fmt.Print(d.v)
+						in_delta = true
+					}
+				}
+				if !in_delta {
+					fmt.Print(".")
+				}
 			}
 			fmt.Print(" ")
 		}
@@ -134,11 +143,11 @@ func (self *Sudoku) get_nine(n Pos, ds []Delta) []int {
 			if v > 0 {
 				r = append(r, v)
 			}
-			for _, d := range ds {
-				if d.pos.X == x && d.pos.Y == y {
-					r = append(r, d.v)
-				}
-			}
+		}
+	}
+	for _, d := range ds {
+		if int_in_list(d.pos.X, nine_grids[n.X]) && int_in_list(d.pos.Y, nine_grids[n.Y]) {
+			r = append(r, d.v)
 		}
 	}
 	return r
@@ -180,28 +189,46 @@ func (self *Sudoku) assess_order() {
 	}
 }
 
-func (self *Sudoku) try_step(ds []Delta) bool {
+var sem = make(chan struct{}, 2)
+
+func (self *Sudoku) try_step(ds []Delta, done chan bool) {
 	step := len(ds)
+	//fmt.Println(step)
+	//self.print_board(ds)
 	if step == len(self.ranks) {
-		self.print_board()
-		return true
+		self.print_board(ds)
+		done <- true
+		return
 	}
 	p := self.ranks[step]
 
 	used_numbers := append(self.get_row(p.Y, ds), self.get_column(p.X, ds)...)
 	used_numbers = append(used_numbers, self.get_nine(p, ds)...)
+	sub_done := make(chan bool, 9)
 	for g := 1; g <= 9; g++ {
 		if int_in_list(g, used_numbers) {
+			sub_done <- false
 			continue
 		}
 		new_ds := append(ds, Delta{p, g})
-		self.board[p] = g
-		if self.try_step(new_ds) {
-			return true
+		select {
+		case sem <- struct{}{}:
+			go func(){
+				self.try_step(new_ds, sub_done)
+				<- sem
+			}()
+		default:
+			self.try_step(new_ds, sub_done)
 		}
 	}
-	self.board[p] = 0
-	return false
+	all_done := false
+	for t := 1; t <= 9; t++ {
+		found := <- sub_done
+		if found {
+			all_done = true
+		}
+	}
+	done <- all_done
 }
 
 func main() {
@@ -211,7 +238,10 @@ func main() {
 	}
 	bd := Sudoku{}
 	bd.read_puzzle(puzzle)
-	bd.print_board()
 	bd.assess_order()
-	bd.try_step([]Delta{})
+	top_done := make(chan bool, 1)
+	ds := []Delta{}
+	bd.print_board(ds)
+	bd.try_step(ds, top_done)
+	fmt.Println("Solved? ", <-top_done)
 }
